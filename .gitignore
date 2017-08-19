@@ -7,3 +7,5 @@ CMakeFiles/
 CMakeScripts/
 PID.xcodeproj/
 cmake_install.cmake
+Debug/
+PID.build/

@@ -1,7 +1,19 @@
 #ifndef PID_H
 #define PID_H
+#include <vector>
 
 class PID {
+private:
+  std::vector<double> p;
+  std::vector<double> dp;
+  double _err_tolerance;
+  int _steps;
+  double _best_err;
+  
+  double cte_prev_;
+  double cte_;
+  double cte_mem_;
+
 public:
   /*
   * Errors
@@ -9,6 +21,8 @@ public:
   double p_error;
   double i_error;
   double d_error;
+  
+  double err;
 
   /*
   * Coefficients
@@ -16,7 +30,7 @@ public:
   double Kp;
   double Ki;
   double Kd;
-
+  
   /*
   * Constructor
   */
@@ -37,6 +51,8 @@ public:
   */
   void UpdateError(double cte);
 
+  void Twiddle(double cte);
+  
   /*
   * Calculate the total PID error.
   */

@@ -33,6 +33,8 @@ int main()
   uWS::Hub h;
 
   PID pid;
+  //Choose tau values from PID lessons
+  pid.Init(0.003, 0.03, 0.00004);
   // TODO: Initialize the pid variable.
 
   h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
@@ -50,7 +52,19 @@ int main()
           double cte = std::stod(j[1]["cte"].get<std::string>());
           double speed = std::stod(j[1]["speed"].get<std::string>());
           double angle = std::stod(j[1]["steering_angle"].get<std::string>());
-          double steer_value;
+          
+          pid.UpdateError(cte);
+//          pid.Twiddle(cte);
+          double steer_value = -(pid.Kp * pid.p_error) -(pid.Kd * pid.d_error) -(pid.Ki * pid.i_error);
+          
+          std::cout << "Params: Kp" << pid.Kp << ", Kd: " << pid.Kd << ", Ki: " << pid.Ki << std::endl << std::endl;
+          
+          if(steer_value > 1.0){
+            steer_value = 1.0;
+          }else if(steer_value < -1.0){
+            steer_value = -1.0;
+          }
+          
           /*
           * TODO: Calcuate steering value here, remember the steering value is
           * [-1, 1].
