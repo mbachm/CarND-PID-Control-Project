@@ -2,3 +2,8 @@
 build
 tags
 .editorconfig
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+PID.xcodeproj/
+cmake_install.cmake
