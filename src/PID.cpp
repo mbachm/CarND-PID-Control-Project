@@ -5,8 +5,8 @@
 using namespace std;
 
 /*
-* TODO: Complete the PID class.
-*/
+ * TODO: Complete the PID class.
+ */
 
 PID::PID() {}
 
@@ -18,11 +18,15 @@ void PID::Init(double Kp, double Ki, double Kd) {
   d_error = 0.0;
   
   p = {Kp, Ki, Kd};
-  dp = {1.0, 1.0, 1.0};
+  dp = {0.5, 0.5, 0.5};
   
-  _steps = 0;
-  _err_tolerance = 0.2;
-  _best_err = 0;
+  step_ = 0;
+  number_of_settle_steps_ = 200;
+  number_of_steps_to_twiddle_ = 2000;
+  actual_param_to_twiddle_ = 0;
+  error_tolerance_ = 0.2;
+  best_error_ = numeric_limits<double>::max();
+  twiddle_ = true;
   
   this->Kp = Kp;
   this->Ki = Ki;
@@ -38,57 +42,60 @@ void PID::UpdateError(double cte) {
   p_error = Kp * cte_;
   i_error = Ki * cte_mem_;
   d_error = Kd * (cte_-cte_prev_);
+  
+  if (twiddle_
+      && step_ > number_of_settle_steps_
+      && step_ < (number_of_settle_steps_+ number_of_steps_to_twiddle_)
+      && error_tolerance_ > total_error_) {
+    Twiddle(cte);
+  }
+  ++step_;
 }
 
 void PID::Twiddle(double cte) {
-  if(_steps == 0){
-    _best_err = cte;
-    p[0] = dp[0];
-    p[1] = dp[1];
-    p[2] = dp[2];
-    ++_steps;
-    return;
-  }
+  double actual_error = pow(cte, 2);
+  cout << "step: " << step_ << endl;
+  cout << "total error: " << total_error_ << endl;
+  cout << "best error: " << best_error_ << endl;
+  cout << "actual error: " << actual_error << endl;
   
-  if(_best_err < _err_tolerance){
-    _best_err = cte;
-    dp[0] *= 1.1;
-    dp[1] *= 1.1;
-    dp[2] *= 1.1;
-    p[0] += dp[0];
-    p[1] += dp[1];
-    p[2] += dp[2];
+  if(actual_error < best_error_) {
+    best_error_ = actual_error;
+    dp[actual_param_to_twiddle_] *= 1.1;
+    // next parameter
+    NextTwiddleParameter();
+  }
+  if (!tried_adding_ && !tried_subtracting_){
+    p[actual_param_to_twiddle_] += dp[actual_param_to_twiddle_];
     Kp = p[0];
-    Kd = p[1];
-    Ki = p[2];
-    cout << "better error" << endl;
+    Ki = p[1];
+    Kd = p[2];
+    tried_adding_ = true;
+  } else if (tried_adding_ && !tried_subtracting_) {
+    p[actual_param_to_twiddle_] -= 2 * dp[actual_param_to_twiddle_];
+    Kp = p[0];
+    Ki = p[1];
+    Kd = p[2];
+    tried_subtracting_ = true;
   } else {
-    if (_steps == 1) {
-      p[0] -= 2 * dp[0];
-      p[1] -= 2 * dp[1];
-      p[2] -= 2 * dp[2];
-      Kp = p[0];
-      Kd = p[1];
-      Ki = p[2];
-      cout << "worse error, first try" << endl;
-      ++_steps;
-    } else {
-      p[0] += dp[0];
-      p[1] += dp[1];
-      p[2] += dp[2];
-      dp[0] *= 0.9;
-      dp[1] *= 0.9;
-      dp[2] *= 0.9;
-      Kp = p[0];
-      Kd = p[1];
-      Ki = p[2];
-      cout << "worse error, second try" << endl;
-      _steps = 1;
-    }
+    p[actual_param_to_twiddle_] += dp[actual_param_to_twiddle_];
+    Kp = p[0];
+    Ki = p[1];
+    Kd = p[2];
+    dp[actual_param_to_twiddle_] *= 0.9;
     
+    // next parameter
+    NextTwiddleParameter();
   }
 }
 
 double PID::TotalError() {
+  total_error_= p_error + d_error + i_error;
+  return total_error_;
 }
 
+void PID::NextTwiddleParameter() {
+  actual_param_to_twiddle_ = (actual_param_to_twiddle_ + 1) % 3;
+  tried_adding_ = false;
+  tried_subtracting_ = false;
+}
