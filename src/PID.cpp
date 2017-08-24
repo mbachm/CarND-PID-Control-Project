@@ -18,15 +18,14 @@ void PID::Init(double Kp, double Ki, double Kd) {
   d_error = 0.0;
   
   p = {Kp, Ki, Kd};
-  dp = {0.5, 0.5, 0.5};
+  dp = {0.2, 0.2, 0.2};
   
   step_ = 0;
   number_of_settle_steps_ = 200;
-  number_of_steps_to_twiddle_ = 2000;
+  number_of_steps_to_twiddle_ = 1500;
   actual_param_to_twiddle_ = 0;
-  error_tolerance_ = 0.2;
   best_error_ = numeric_limits<double>::max();
-  twiddle_ = true;
+  twiddle_ = false;
   
   this->Kp = Kp;
   this->Ki = Ki;
@@ -45,8 +44,7 @@ void PID::UpdateError(double cte) {
   
   if (twiddle_
       && step_ > number_of_settle_steps_
-      && step_ < (number_of_settle_steps_+ number_of_steps_to_twiddle_)
-      && error_tolerance_ > total_error_) {
+      && step_ < (number_of_settle_steps_+ number_of_steps_to_twiddle_)) {
     Twiddle(cte);
   }
   ++step_;
